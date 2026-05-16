@@ -24,7 +24,11 @@ import {
   LogOut,
   Calendar as CalendarIcon,
   X,
-  ChevronLeft
+  ChevronLeft,
+  Lightbulb,
+  AlertTriangle,
+  Download,
+  Info
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -60,7 +64,7 @@ const IconMap: Record<string, React.ReactNode> = {
   Heart: <Heart className="w-5 h-5" />,
 };
 
-type Screen = 'onboarding' | 'dashboard' | 'teams' | 'rewards' | 'achievements';
+type Screen = 'onboarding' | 'dashboard' | 'teams' | 'rewards' | 'achievements' | 'insights';
 
 // --- NAVIGATION & LAYOUT ---
 function CalendarModal({ isOpen, onClose, selectedDate, onSelectDate }: { 
@@ -195,6 +199,7 @@ function SideMenu({ isOpen, onClose, currentScreen, setScreen, user }: {
 }) {
   const menuItems: { screen: Screen, icon: any, label: string, desc: string }[] = [
     { screen: 'dashboard', icon: LayoutDashboard, label: 'The Nets', desc: 'Daily Practice' },
+    { screen: 'insights', icon: Lightbulb, label: 'Coach Academy', desc: 'Expert Tips' },
     { screen: 'achievements', icon: Trophy, label: 'Career Path', desc: 'Milestones' },
     { screen: 'teams', icon: Users, label: 'The Stadium', desc: 'Team Match' },
     { screen: 'rewards', icon: ShoppingBag, label: 'Club Shop', desc: 'Redeem Runs' },
@@ -220,7 +225,7 @@ function SideMenu({ isOpen, onClose, currentScreen, setScreen, user }: {
           >
             <div className="p-8 space-y-8">
               <div className="space-y-1">
-                <h2 className="text-3xl font-black text-neon italic">HABIT QUEST</h2>
+                <h2 className="text-3xl font-black text-neon italic">EPICDAILY</h2>
                 <div className="flex items-center space-x-2 text-xs text-slate-400 font-mono">
                   <span>ID: {user.teamCode}</span>
                 </div>
@@ -290,7 +295,7 @@ export default function App() {
 
   const handleLogout = () => {
     if (confirm("Logout will reset your local progress. Are you sure?")) {
-      localStorage.removeItem('habit_quest_user');
+      localStorage.removeItem('epicdaily_user');
       setUser(null);
       setScreen('onboarding');
     }
@@ -361,6 +366,11 @@ export default function App() {
                 <Achievements user={user} />
               )}
 
+              
+              {screen === 'insights' && (
+                <Insights user={user} />
+              )}
+
               {screen === 'rewards' && (
                 <Rewards user={user} setUser={setUser} />
               )}
@@ -415,7 +425,7 @@ function Onboarding({ onComplete }: { onComplete: (u: UserProfile) => void, key?
       className="p-6 max-w-lg mx-auto space-y-8 pt-12"
     >
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold text-neon leading-tight">HABIT QUEST</h1>
+        <h1 className="text-4xl font-bold text-neon leading-tight">EPICDAILY</h1>
         <p className="text-gray-400">Join the nets. Build your identity. Score runs.</p>
       </div>
 
@@ -965,12 +975,168 @@ function Rewards({ user, setUser }: { user: UserProfile, setUser: (u: UserProfil
   );
 }
 
+// --- SCREEN: INSIGHTS ---
+function Insights({ user }: { user: UserProfile }) {
+  const [insights, setInsights] = useState<{
+    suggestions: { habit: string, advice: string }[],
+    benefits: { habit: string, benefit: string }[],
+    risks: { habit: string, risk: string }[]
+  } | null>(null);
+  
+  const [quoteData, setQuoteData] = useState<{ quote: string, author: string, image: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const [insightsRes, quoteRes] = await Promise.all([
+          fetch('/api/habit-insights', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ habits: user.habits })
+          }),
+          fetch('/api/daily-quote')
+        ]);
+        
+        const iData = await insightsRes.json();
+        const qData = await quoteRes.json();
+        
+        setInsights(iData);
+        setQuoteData(qData);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [user.habits]);
+
+  const downloadQuote = () => {
+    if (!quoteData) return;
+    const link = document.createElement('a');
+    link.href = quoteData.image;
+    link.download = 'habit-quest-motivation.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 border-4 border-neon border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Consulting the Coach...</p>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="p-6 space-y-8 pb-24"
+    >
+      <header className="pt-6">
+        <h2 className="text-3xl font-bold tracking-tighter italic">COACH ACADEMY</h2>
+        <p className="text-gray-400 text-sm">Expert analysis of your technique and mindset.</p>
+      </header>
+
+      {/* Quote Card */}
+      <div className="relative rounded-3xl overflow-hidden shadow-2xl group">
+        <div className="aspect-[16/9] relative">
+          {quoteData && (
+            <>
+              <img src={quoteData.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Motivation" />
+              <div className="absolute inset-0 bg-gradient-to-t from-pitch via-pitch/40 to-transparent" />
+              <div className="absolute inset-0 p-8 flex flex-col justify-end space-y-2">
+                <blockquote className="text-white">
+                  <p className="text-xl font-black italic tracking-tight leading-tight">"{quoteData.quote}"</p>
+                  <footer className="text-neon text-xs font-mono mt-2">— {quoteData.author}</footer>
+                </blockquote>
+                <button 
+                  onClick={downloadQuote}
+                  className="absolute top-4 right-4 p-2 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-neon hover:text-black transition-all active:scale-95"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Advice Section */}
+      <div className="space-y-6">
+        <div className="flex items-center space-x-2">
+          <Lightbulb className="w-5 h-5 text-neon" />
+          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Coach's Suggestions</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4">
+          {insights?.suggestions.map((s, i) => (
+            <div key={i} className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm space-y-2">
+              <div className="flex items-center space-x-2">
+                <Info className="w-4 h-4 text-neon" />
+                <h4 className="font-bold text-ink uppercase text-[10px] tracking-widest">{s.habit}</h4>
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed italic">"{s.advice}"</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Benefits & Risks Bento */}
+      <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="w-5 h-5 text-green-500" />
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">The Upside (Benefits)</h3>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {insights?.benefits.map((b, i) => (
+              <div key={i} className="bg-green-50/50 border border-green-100 p-4 rounded-xl flex items-start space-x-3">
+                <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5 shrink-0" />
+                <div>
+                  <div className="text-[10px] font-black uppercase text-green-600 mb-0.5">{b.habit}</div>
+                  <div className="text-xs text-slate-600 leading-snug">{b.benefit}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">The Downside (Risks)</h3>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {insights?.risks.map((r, i) => (
+              <div key={i} className="bg-red-50/50 border border-red-100 p-4 rounded-xl flex items-start space-x-3">
+                <div className="w-2 h-2 bg-red-500 rounded-full mt-1.5 shrink-0" />
+                <div>
+                  <div className="text-[10px] font-black uppercase text-red-600 mb-0.5">{r.habit}</div>
+                  <div className="text-xs text-slate-600 leading-snug">{r.risk}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // --- NAVIGATION ---
 function BottomNav({ currentScreen, setScreen }: { currentScreen: Screen, setScreen: (s: Screen) => void }) {
   const NavItems: { screen: Screen, icon: any, label: string }[] = [
     { screen: 'dashboard', icon: LayoutDashboard, label: 'Nets' },
-    { screen: 'achievements', icon: Trophy, label: 'Career' },
-    { screen: 'teams', icon: Users, label: 'Match' },
+    { screen: 'insights', icon: Lightbulb, label: 'Coach' },
+    { screen: 'achievements', icon: Trophy, label: 'Path' },
+    { screen: 'teams', icon: Users, label: 'Team' },
     { screen: 'rewards', icon: ShoppingBag, label: 'Shop' },
   ];
 

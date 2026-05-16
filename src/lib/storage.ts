@@ -1,7 +1,7 @@
 import { UserProfile, Habit, DailyHistory } from '../types';
 import { format } from 'date-fns';
 
-const STORAGE_KEY = 'habit_quest_user';
+const STORAGE_KEY = 'epicdaily_user';
 
 export const saveUser = (user: UserProfile) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(user));

@@ -1,5 +1,5 @@
 {
-  "name": "Habit Quest",
+  "name": "EpicDaily",
   "description": "A cricket-themed habit tracker that uses gamification and team mechanics to build long-term habits.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
