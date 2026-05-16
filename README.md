@@ -2,6 +2,10 @@
 
 EpicDaily is a cricket-themed habit tracker designed to turn long-term habit building into an engaging, gamified experience. Whether you're "practicing in the nets" (daily habits) or "facing a rival squad" (team mechanics), EpicDaily uses the spirit of cricket to keep you consistent.
 
+## 🚀 Live Demo
+
+**[View the Live Application](https://ais-pre-n56ztnds6mstfkpe5sbdsn-55985620159.asia-southeast1.run.app)**
+
 ## 🌟 Key Features
 
 - **Daily Drills**: Gamified habit tracking where completions are scored as "Runs".
