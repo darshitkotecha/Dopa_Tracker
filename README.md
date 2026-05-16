@@ -2,11 +2,37 @@
 
 EpicDaily is a cricket-themed habit tracker designed to turn long-term habit building into an engaging, gamified experience. Whether you're "practicing in the nets" (daily habits) or "facing a rival squad" (team mechanics), EpicDaily uses the spirit of cricket to keep you consistent.
 
-## 🚀 Live Demo
+## 🚀 Live Links
 
-**View the application here:**
-- [Habit Quest - Live Preview](https://ais-pre-n56ztnds6mstfkpe5sbdsn-55985620159.asia-southeast1.run.app)
-- [Open in AI Studio Code Editor](https://ai.studio/build/e264d571-41bf-4020-aef9-da696c66eab3) (Read-only/View mode available)
+- **[Development Preview](https://ais-dev-n56ztnds6mstfkpe5sbdsn-55985620159.asia-southeast1.run.app)** (Active during development)
+- **[Public Share Link](https://ais-pre-n56ztnds6mstfkpe5sbdsn-55985620159.asia-southeast1.run.app)** (Requires deployment)
+- **[Open in AI Studio](https://ai.studio/build/e264d571-41bf-4020-aef9-da696c66eab3)**
+
+## 📸 Screen Gallery
+
+### 1. Welcome & Onboarding
+*The entry point where you join the squad.*
+![Onboarding Screen](https://images.unsplash.com/photo-1540747913346-19e3ad6436b9?w=800&q=80)
+
+### 2. The Nets (Dashboard)
+*Track your daily drills and see your form.*
+![Dashboard Screen](https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&q=80)
+
+### 3. Coach Academy (AI Insights)
+*Personalized technical analysis and motivational quotes.*
+![Coach Academy](https://images.unsplash.com/photo-1589487391730-58f20eb2c308?w=800&q=80)
+
+### 4. Career Path (Achievements)
+*Visualize your rise from Debut to Legend.*
+![Career Path](https://images.unsplash.com/photo-1519861531473-9200262188bf?w=800&q=80)
+
+### 5. The Stadium (Match Play)
+*Compete with your team and see the leaderboard.*
+![The Stadium](https://images.unsplash.com/photo-1508344928928-71657da71809?w=800&q=80)
+
+### 6. Club Shop
+*Redeem your runs for exclusive rewards.*
+![Club Shop](https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80)
 
 ## 🌟 Key Features
 
