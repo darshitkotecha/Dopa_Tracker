@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --color-stadium: #F8FAFC;
+  --color-pitch: #FFFFFF;
+  --color-neon: #16A34A;
+  --color-highlight: #DC2626;
+  --color-ink: #0F172A;
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-stadium text-ink antialiased overflow-x-hidden;
+    font-family: var(--font-sans);
+  }
+}
+
+.brutal-border {
+  @apply border-2 border-neon;
+}
+
+.glow-card {
+  @apply bg-pitch border border-slate-200 shadow-sm;
+}
+
+.stadium-gradient {
+  background: radial-gradient(circle at 50% 0%, rgba(22, 163, 74, 0.05) 0%, transparent 70%);
+}
