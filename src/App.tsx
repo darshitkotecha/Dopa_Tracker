@@ -21,7 +21,10 @@ import {
   TrendingUp,
   LayoutDashboard,
   Menu,
-  LogOut
+  LogOut,
+  Calendar as CalendarIcon,
+  X,
+  ChevronLeft
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -34,7 +37,7 @@ import {
   BarChart,
   Bar
 } from 'recharts';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, subDays, isSameDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, subDays, isSameDay, startOfMonth, addMonths, subMonths, isToday, isSameMonth } from 'date-fns';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -57,11 +60,101 @@ const IconMap: Record<string, React.ReactNode> = {
   Heart: <Heart className="w-5 h-5" />,
 };
 
-type Screen = 'onboarding' | 'dashboard' | 'teams' | 'rewards';
+type Screen = 'onboarding' | 'dashboard' | 'teams' | 'rewards' | 'achievements';
 
 // --- NAVIGATION & LAYOUT ---
-function MobileHeader({ user, onLogout, onToggleMenu }: { user: UserProfile, onLogout: () => void, onToggleMenu: () => void }) {
-  const today = format(new Date(), 'EEE, MMM dd');
+function CalendarModal({ isOpen, onClose, selectedDate, onSelectDate }: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  selectedDate: Date, 
+  onSelectDate: (d: Date) => void 
+}) {
+  const [viewDate, setViewDate] = useState(new Date());
+  const monthStart = startOfMonth(viewDate);
+  const monthEnd = endOfWeek(startOfMonth(addMonths(viewDate, 1)));
+  const days = eachDayOfInterval({ start: startOfWeek(monthStart), end: monthEnd });
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[80]"
+          />
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white rounded-3xl z-[90] shadow-2xl p-6 overflow-hidden"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-ink">{format(viewDate, 'MMMM yyyy')}</h3>
+              <div className="flex items-center space-x-2">
+                <button onClick={() => setViewDate(subMonths(viewDate, 1))} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button onClick={() => setViewDate(addMonths(viewDate, 1))} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                <div key={`${d}-${i}`} className="text-center text-[10px] font-bold text-slate-400 py-2">{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {days.slice(0, 35).map((day) => {
+                const isSelected = isSameDay(day, selectedDate);
+                const isCurrentMonth = isSameMonth(day, viewDate);
+                const isDayToday = isToday(day);
+                const dateString = format(day, 'yyyy-MM-dd');
+                
+                return (
+                  <button
+                    key={dateString}
+                    onClick={() => { onSelectDate(day); onClose(); }}
+                    className={cn(
+                      "aspect-square rounded-xl flex flex-col items-center justify-center transition-all relative overflow-hidden",
+                      !isCurrentMonth && "opacity-20",
+                      isSelected ? "bg-neon text-white font-bold" : "hover:bg-slate-50 text-ink text-sm",
+                      isDayToday && !isSelected && "border border-neon/50"
+                    )}
+                  >
+                    <span>{format(day, 'd')}</span>
+                    {isDayToday && !isSelected && <div className="w-1 h-1 bg-neon rounded-full mt-0.5" />}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <button
+              onClick={() => { onSelectDate(new Date()); onClose(); }}
+              className="w-full mt-6 py-3 bg-slate-50 text-ink text-xs font-bold rounded-xl uppercase tracking-widest hover:bg-slate-100 transition-all"
+            >
+              Back to Today
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function MobileHeader({ user, onLogout, onToggleMenu, selectedDate, onDateClick }: { 
+  user: UserProfile, 
+  onLogout: () => void, 
+  onToggleMenu: () => void,
+  selectedDate: Date,
+  onDateClick: () => void
+}) {
+  const displayDate = isToday(selectedDate) ? "Today" : format(selectedDate, 'EEE, MMM dd');
   
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200 z-40 px-4 flex items-center justify-between shadow-sm">
@@ -72,10 +165,16 @@ function MobileHeader({ user, onLogout, onToggleMenu }: { user: UserProfile, onL
         <Menu className="w-6 h-6" />
       </button>
       
-      <div className="flex flex-col items-center">
-        <h1 className="text-sm font-bold tracking-tight text-ink">{user.name}</h1>
-        <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">{today}</span>
-      </div>
+      <button 
+        onClick={onDateClick}
+        className="flex flex-col items-center hover:bg-slate-50 px-4 py-1 rounded-xl transition-all active:scale-95 group"
+      >
+        <h1 className="text-sm font-bold tracking-tight text-ink group-hover:text-neon transition-colors">{user.name}</h1>
+        <div className="flex items-center space-x-1">
+          <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">{displayDate}</span>
+          <CalendarIcon className="w-2.5 h-2.5 text-neon" />
+        </div>
+      </button>
       
       <button 
         onClick={onLogout}
@@ -96,6 +195,7 @@ function SideMenu({ isOpen, onClose, currentScreen, setScreen, user }: {
 }) {
   const menuItems: { screen: Screen, icon: any, label: string, desc: string }[] = [
     { screen: 'dashboard', icon: LayoutDashboard, label: 'The Nets', desc: 'Daily Practice' },
+    { screen: 'achievements', icon: Trophy, label: 'Career Path', desc: 'Milestones' },
     { screen: 'teams', icon: Users, label: 'The Stadium', desc: 'Team Match' },
     { screen: 'rewards', icon: ShoppingBag, label: 'Club Shop', desc: 'Redeem Runs' },
   ];
@@ -173,6 +273,8 @@ export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [screen, setScreen] = useState<Screen>('onboarding');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(new Date());
   const [tip, setTip] = useState<string>("Stay focused on your goals!");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -222,6 +324,8 @@ export default function App() {
               user={user} 
               onLogout={handleLogout} 
               onToggleMenu={() => setIsMenuOpen(true)} 
+              selectedDate={viewDate}
+              onDateClick={() => setIsCalendarOpen(true)}
             />
             
             <SideMenu 
@@ -232,17 +336,29 @@ export default function App() {
               user={user}
             />
 
+            <CalendarModal 
+              isOpen={isCalendarOpen} 
+              onClose={() => setIsCalendarOpen(false)} 
+              selectedDate={viewDate} 
+              onSelectDate={setViewDate} 
+            />
+
             <main className="pt-20 pb-24 max-w-lg mx-auto">
               {screen === 'dashboard' && (
                 <Dashboard 
                   user={user} 
                   setUser={setUser} 
                   tip={tip}
+                  selectedDate={viewDate}
                 />
               )}
 
               {screen === 'teams' && (
                 <Teams user={user} />
+              )}
+
+              {screen === 'achievements' && (
+                <Achievements user={user} />
               )}
 
               {screen === 'rewards' && (
@@ -360,13 +476,21 @@ function Onboarding({ onComplete }: { onComplete: (u: UserProfile) => void, key?
 }
 
 // --- SCREEN: DASHBOARD ---
-function Dashboard({ user, setUser, tip }: { user: UserProfile, setUser: (u: UserProfile) => void, tip: string, key?: string }) {
+function Dashboard({ user, setUser, tip, selectedDate }: { 
+  user: UserProfile, 
+  setUser: (u: UserProfile) => void, 
+  tip: string, 
+  selectedDate: Date,
+  key?: string 
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isViewingHistory = !isToday(selectedDate);
+  const dateKey = format(selectedDate, 'yyyy-MM-dd');
 
   const handleComplete = (id: string) => {
+    if (isViewingHistory) return;
     const updated = updateHabitCompletion(user, id);
     setUser(updated);
-    // Haptic simulation if possible or just visual
   };
 
   const getActiveMilestone = (days: number) => {
@@ -374,19 +498,19 @@ function Dashboard({ user, setUser, tip }: { user: UserProfile, setUser: (u: Use
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isViewingHistory) return;
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const today = format(new Date(), 'yyyy-MM-dd');
         const updatedHistory = [...user.history];
-        const histIndex = updatedHistory.findIndex(h => h.date === today);
+        const histIndex = updatedHistory.findIndex(h => h.date === dateKey);
         
         if (histIndex !== -1) {
           updatedHistory[histIndex].proofUrl = reader.result as string;
         } else {
           updatedHistory.push({
-            date: today,
+            date: dateKey,
             completedHabits: [],
             pointsEarned: 0,
             proofUrl: reader.result as string
@@ -401,7 +525,13 @@ function Dashboard({ user, setUser, tip }: { user: UserProfile, setUser: (u: Use
     }
   };
 
-  const todayHistory = user.history.find(h => h.date === format(new Date(), 'yyyy-MM-dd'));
+  const dayHistory = user.history.find(h => h.date === dateKey);
+  const habitsForSelectedDate = user.habits.map(h => {
+    const isCompleted = isViewingHistory 
+      ? (dayHistory?.completedHabits.includes(h.id) || false)
+      : (h.lastCompleted === dateKey);
+    return { ...h, isCompleted };
+  });
 
   return (
     <motion.div 
@@ -412,66 +542,94 @@ function Dashboard({ user, setUser, tip }: { user: UserProfile, setUser: (u: Use
     >
       <header className="flex justify-between items-start pt-6">
         <div>
-          <h2 className="text-2xl font-bold">{user.name}</h2>
+          <h2 className="text-2xl font-bold flex items-center space-x-2">
+            {isViewingHistory && <Trophy className="w-5 h-5 text-neon" />}
+            <span>{isViewingHistory ? `Match Day Replay` : user.name}</span>
+          </h2>
           <div className="flex items-center space-x-2 text-neon">
             <Trophy className="w-4 h-4" />
-            <span className="text-sm font-mono tracking-tighter">TOTAL RUNS: {user.points}</span>
+            <span className="text-sm font-mono tracking-tighter">
+              {isViewingHistory ? `DAY RUNS: ${dayHistory?.pointsEarned || 0}` : `TOTAL RUNS: ${user.points}`}
+            </span>
           </div>
         </div>
-        <div className="w-12 h-12 rounded-full border-2 border-neon flex items-center justify-center text-xl bg-pitch">
-          {getActiveMilestone(Math.max(...user.habits.map(h => h.streak), 0)).badge}
+        <div className="w-12 h-12 rounded-full border-2 border-neon flex items-center justify-center text-xl bg-pitch shadow-lg">
+          {isViewingHistory ? "💾" : getActiveMilestone(Math.max(...user.habits.map(h => h.streak), 0)).badge}
         </div>
       </header>
 
-      {/* Learn Builder Card */}
-      <motion.div 
-        whileHover={{ scale: 1.02 }}
-        className="bg-neon/10 border border-neon/30 p-5 rounded-2xl space-y-2 relative overflow-hidden"
-      >
-        <div className="absolute -right-4 -top-4 text-neon/10"><BookOpen className="w-24 h-24" /></div>
-        <h3 className="text-xs font-bold text-neon uppercase tracking-wider">Coach's Tip</h3>
-        <p className="text-sm leading-relaxed pr-8">{tip}</p>
-        <div className="flex items-center space-x-1 text-[10px] text-neon/60 mt-2">
-          <Zap className="w-3 h-3" />
-          <span>BONUS RUN ANIMATION ACTIVE</span>
+      {isViewingHistory && (
+        <div className="bg-neon p-4 rounded-2xl text-white flex items-center space-x-3 shadow-xl shadow-neon/20">
+          <Zap className="w-6 h-6 animate-pulse" />
+          <div>
+            <div className="text-[10px] uppercase font-black">Historical Record</div>
+            <div className="text-sm font-bold">Reviewing performance from {format(selectedDate, 'MMM dd, yyyy')}</div>
+          </div>
         </div>
-      </motion.div>
+      )}
+
+      {/* Learn Builder Card */}
+      {!isViewingHistory && (
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="bg-neon/10 border border-neon/30 p-5 rounded-2xl space-y-2 relative overflow-hidden"
+        >
+          <div className="absolute -right-4 -top-4 text-neon/10"><BookOpen className="w-24 h-24" /></div>
+          <h3 className="text-xs font-bold text-neon uppercase tracking-wider">Coach's Tip</h3>
+          <p className="text-sm leading-relaxed pr-8">{tip}</p>
+          <div className="flex items-center space-x-1 text-[10px] text-neon/60 mt-2">
+            <Zap className="w-3 h-3" />
+            <span>BONUS RUN ANIMATION ACTIVE</span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Habit List */}
       <div className="space-y-4">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Daily Drills</h3>
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">
+          {isViewingHistory ? "Match Performance" : "Daily Drills"}
+        </h3>
         <div className="space-y-3">
-          {user.habits.map(h => {
-             const isCompleted = h.lastCompleted === format(new Date(), 'yyyy-MM-dd');
+          {habitsForSelectedDate.map(h => {
              return (
               <motion.div
                 key={h.id}
                 layout
                 className={cn(
                   "p-5 rounded-2xl flex items-center justify-between border transition-all duration-300",
-                  isCompleted ? "bg-slate-50 border-neon/30 opacity-60" : "bg-white border-slate-100 shadow-sm hover:border-slate-200"
+                  h.isCompleted ? "bg-slate-50 border-neon/30 opacity-60" : "bg-white border-slate-100 shadow-sm hover:border-slate-200"
                 )}
               >
                 <div className="flex items-center space-x-4">
-                  <div className={cn("p-3 rounded-xl", isCompleted ? "bg-neon/10 text-neon" : "bg-slate-50")}>
+                  <div className={cn("p-3 rounded-xl", h.isCompleted ? "bg-neon/10 text-neon" : "bg-slate-50")}>
                     {IconMap[h.icon]}
                   </div>
                   <div>
                     <h4 className="font-semibold text-lg text-ink">{h.name}</h4>
-                    <span className="text-xs font-mono text-slate-400">{h.streak} Day Streak</span>
+                    {!isViewingHistory && <span className="text-xs font-mono text-slate-400">{h.streak} Day Streak</span>}
+                    {isViewingHistory && <span className={cn("text-[10px] uppercase font-bold", h.isCompleted ? "text-neon" : "text-slate-300")}>
+                      {h.isCompleted ? "Goal Scored" : "Missed Match"}
+                    </span>}
                   </div>
                 </div>
                 
-                <button
-                  onClick={() => !isCompleted && handleComplete(h.id)}
-                  disabled={isCompleted}
-                  className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center transition-all",
-                    isCompleted ? "bg-neon/10 text-neon" : "bg-neon text-white active:scale-90"
-                  )}
-                >
-                  {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-                </button>
+                {!isViewingHistory && (
+                  <button
+                    onClick={() => !h.isCompleted && handleComplete(h.id)}
+                    disabled={h.isCompleted}
+                    className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center transition-all",
+                      h.isCompleted ? "bg-neon/10 text-neon" : "bg-neon text-white active:scale-90"
+                    )}
+                  >
+                    {h.isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                  </button>
+                )}
+                {isViewingHistory && h.isCompleted && (
+                  <div className="w-10 h-10 bg-neon/10 rounded-full flex items-center justify-center text-neon">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                )}
               </motion.div>
              );
           })}
@@ -479,29 +637,40 @@ function Dashboard({ user, setUser, tip }: { user: UserProfile, setUser: (u: Use
       </div>
 
       {/* Photo Upload Section */}
-      <div className="space-y-4 pt-4">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Daily Match Proof</h3>
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full aspect-video rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center space-y-3 bg-slate-50 hover:border-neon/50 cursor-pointer transition-colors relative overflow-hidden"
-        >
-          {todayHistory?.proofUrl ? (
-            <img src={todayHistory.proofUrl} className="w-full h-full object-cover opacity-80" alt="Proof" />
-          ) : (
-            <>
-              <Camera className="w-8 h-8 text-slate-400" />
-              <span className="text-sm text-slate-400">Upload Team Proof from Gallery</span>
-            </>
-          )}
-          <input 
-            type="file" 
-            accept="image/*" 
-            ref={fileInputRef} 
-            onChange={handlePhotoUpload}
-            className="hidden" 
-          />
+      {(dayHistory?.proofUrl || !isViewingHistory) && (
+        <div className="space-y-4 pt-4">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">
+            {isViewingHistory ? "Match Day Snapshot" : "Daily Match Proof"}
+          </h3>
+          <div 
+            onClick={() => !isViewingHistory && fileInputRef.current?.click()}
+            className={cn(
+              "w-full aspect-video rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center space-y-3 bg-slate-50 relative overflow-hidden transition-all",
+              !isViewingHistory && "hover:border-neon/50 cursor-pointer"
+            )}
+          >
+            {dayHistory?.proofUrl ? (
+              <img src={dayHistory.proofUrl} className="w-full h-full object-cover opacity-80" alt="Proof" />
+            ) : (
+              !isViewingHistory && (
+                <>
+                  <Camera className="w-8 h-8 text-slate-400" />
+                  <span className="text-sm text-slate-400">Upload Team Proof from Gallery</span>
+                </>
+              )
+            )}
+            {!isViewingHistory && (
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                onChange={handlePhotoUpload}
+                className="hidden" 
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 }
@@ -612,6 +781,98 @@ function Teams({ user }: { user: UserProfile, key?: string }) {
   );
 }
 
+// --- SCREEN: ACHIEVEMENTS ---
+function Achievements({ user }: { user: UserProfile, key?: string }) {
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="p-6 space-y-8"
+    >
+      <header className="pt-6">
+        <h2 className="text-3xl font-bold tracking-tighter italic">CAREER PATH</h2>
+        <p className="text-gray-400 text-sm">Your journey from rookie to legend.</p>
+      </header>
+
+      <div className="grid grid-cols-1 gap-6">
+        {user.habits.map(h => {
+          // Progress against 365 days
+          const progress = Math.min((h.streak / 365) * 100, 100);
+          const offset = circumference - (progress / 100) * circumference;
+
+          return (
+            <div key={h.id} className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-neon/10 rounded-2xl text-neon">
+                    {IconMap[h.icon]}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg text-ink">{h.name}</h3>
+                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest">
+                      {h.streak} Day Continuous Streak
+                    </p>
+                  </div>
+                </div>
+                <div className="text-2xl">{MILESTONES.find(m => h.streak >= m.days)?.badge || "🌱"}</div>
+              </div>
+
+              <div className="flex items-center justify-around py-4">
+                <div className="relative w-32 h-32 flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90">
+                    <circle
+                      cx="64" cy="64" r={radius}
+                      className="fill-none stroke-slate-50 stroke-[8]"
+                    />
+                    <motion.circle
+                      initial={{ strokeDashoffset: circumference }}
+                      animate={{ strokeDashoffset: offset }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      cx="64" cy="64" r={radius}
+                      strokeDasharray={circumference}
+                      className="fill-none stroke-neon stroke-[8] stroke-round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-black text-ink">{h.streak}</span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">Days</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 flex-1 ml-8">
+                  {MILESTONES.map(m => {
+                    const isReached = h.streak >= m.days;
+                    return (
+                      <div key={m.days} className="flex items-center space-x-3">
+                        <div className={cn(
+                          "w-5 h-5 rounded-full flex items-center justify-center text-[10px]",
+                          isReached ? "bg-neon text-white" : "bg-slate-100 text-slate-400"
+                        )}>
+                          {isReached ? <CheckCircle2 className="w-3 h-3" /> : m.days}
+                        </div>
+                        <div>
+                          <div className={cn("text-[10px] font-bold leading-tight", isReached ? "text-ink" : "text-slate-300")}>
+                            {m.label}
+                          </div>
+                          <div className="text-[8px] text-slate-400 uppercase tracking-tighter">Requires {m.days} Days</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
 // --- SCREEN: REWARDS ---
 function Rewards({ user, setUser }: { user: UserProfile, setUser: (u: UserProfile) => void, key?: string }) {
   const [isRedeeming, setIsRedeeming] = useState(false);
@@ -708,6 +969,7 @@ function Rewards({ user, setUser }: { user: UserProfile, setUser: (u: UserProfil
 function BottomNav({ currentScreen, setScreen }: { currentScreen: Screen, setScreen: (s: Screen) => void }) {
   const NavItems: { screen: Screen, icon: any, label: string }[] = [
     { screen: 'dashboard', icon: LayoutDashboard, label: 'Nets' },
+    { screen: 'achievements', icon: Trophy, label: 'Career' },
     { screen: 'teams', icon: Users, label: 'Match' },
     { screen: 'rewards', icon: ShoppingBag, label: 'Shop' },
   ];
