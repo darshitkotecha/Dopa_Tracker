@@ -4,7 +4,9 @@ EpicDaily is a cricket-themed habit tracker designed to turn long-term habit bui
 
 ## 🚀 Live Demo
 
-**[View the Live Application](https://ais-pre-n56ztnds6mstfkpe5sbdsn-55985620159.asia-southeast1.run.app)**
+**View the application here:**
+- [Habit Quest - Live Preview](https://ais-pre-n56ztnds6mstfkpe5sbdsn-55985620159.asia-southeast1.run.app)
+- [Open in AI Studio Code Editor](https://ai.studio/build/e264d571-41bf-4020-aef9-da696c66eab3) (Read-only/View mode available)
 
 ## 🌟 Key Features
 

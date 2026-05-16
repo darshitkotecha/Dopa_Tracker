@@ -25,14 +25,17 @@ async function startServer() {
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-flash-latest",
         contents: "Give me 1 quick, motivating cricket-themed habit building tip. Stay under 20 words. Focus on consistency or 'staying at the crease'.",
       });
       
       const text = response.text || "Keep your eyes on the ball and stay consistent!";
       res.json({ tip: text.trim() });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gemini Error:", error);
+      if (error.message?.includes("429") || error.status === 429) {
+        console.warn("Quota exceeded for habit-tips. Check Settings > Secrets to select a billing-enabled key.");
+      }
       res.json({ tip: "Consistency is like staying at the crease; keep playing to score big!" });
     }
   });
@@ -63,7 +66,7 @@ async function startServer() {
       Ensure the advice is cricket-themed.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-flash-latest",
         contents: prompt,
         config: { responseMimeType: "application/json" }
       });
@@ -71,8 +74,11 @@ async function startServer() {
       const data = JSON.parse(response.text || "{}");
       insightCache.set(cacheKey, { data, timestamp: Date.now() });
       res.json(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Insights Error:", error);
+      if (error.message?.includes("429") || error.status === 429) {
+        console.warn("Quota exceeded for habit-insights. Check Settings > Secrets to select a billing-enabled key.");
+      }
       res.json({
         suggestions: [{ habit: "General", advice: "Maintain your stance and keep your eyes on the daily goals." }],
         benefits: [{ habit: "Routine", benefit: "Building a solid foundation for peak performance." }],
@@ -91,7 +97,7 @@ async function startServer() {
 
       // 1. Generate Quote Text
       const quoteResponse = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-flash-latest",
         contents: "Provide a 10-word motivational cricket quote. Give a JSON with 'quote' and 'author'.",
         config: { responseMimeType: "application/json" }
       });
@@ -113,8 +119,8 @@ async function startServer() {
             }
           }
         }
-      } catch (e) {
-        console.warn("Gemini Image Gen failed, using fallback URL.", e);
+      } catch (e: any) {
+        console.warn("Gemini Image Gen failed, using fallback URL.", e.message || e);
       }
 
       res.json({
@@ -122,8 +128,11 @@ async function startServer() {
         author: quoteData.author,
         image: base64Image ? `data:image/png;base64,${base64Image}` : "https://images.unsplash.com/photo-1540747913346-19e3ad6436b9?w=1200&h=675&fit=crop"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Quote Error:", error);
+      if (error.message?.includes("429") || error.status === 429) {
+        console.warn("Quota exceeded for daily-quote. Check Settings > Secrets to select a billing-enabled key.");
+      }
       res.json({
         quote: "Don't let them bowling you out before you play your best innings.",
         author: "Coach G",
